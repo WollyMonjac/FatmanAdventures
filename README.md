@@ -2,6 +2,8 @@
 
 An experiment with **Claude Opus 5.5**. The goal was to take *Paksukese seiklused* (Another Day / Shamrock Games, 2003), an Estonian CD game from my childhood, and get it running in a web browser and on a Nintendo DS. Claude rebuilt the original Windows program as portable code instead of emulating a PC.
 
+[PLAY IT HERE!](https://wollymonjac.github.io/FatmanAdventures/WEB/)
+
 ![The browser version, episode 1 "Kadunud mets"](screenshot.png)
 ![The DS version, episode 1 "Kadunud mets"](screenshot_ds.png)
 
