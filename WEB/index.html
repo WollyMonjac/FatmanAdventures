@@ -1,0 +1,826 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Paksukese seiklused</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a title screen (the game's own sky panorama over four episode backdrops) and a play screen
+   where the 4:3 picture fills whatever is left after the bar or the touch pads.
+   One deliberate dark look: the indigo top of the game's twilight sky, Paksuke's orange, the grass green. */
+:root {
+  --night: #0e0a22;      /* page ground: top of the title-screen sky */
+  --dusk: #1a1439;       /* cards, bars, pads */
+  --dusk-hi: #251d50;    /* pressed and hovered surfaces */
+  --rule: #372d70;       /* hairlines and rims */
+  --ink: #f5f1ff;        /* text */
+  --haze: #a9a2d2;       /* secondary text */
+  --sun: #ffb21e;        /* Paksuke orange: the one accent */
+  --sun-ink: #2b1600;    /* text on orange */
+  --sun-deep: #b35c00;   /* orange button edge */
+  --grass: #5cc645;      /* "full game" and success marks */
+  --black: #000;         /* the game screen itself */
+  --display: "Bagel Fat One", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --ui: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+html { height: 100%; box-sizing: border-box; background: var(--night); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%; margin: 0;
+  background: var(--night); color: var(--ink);
+  font: 15px/1.5 var(--ui);
+  -webkit-tap-highlight-color: transparent;
+}
+body.playing { overflow: hidden; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---------- shared buttons ---------- */
+.tbtn {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 0 14px; border: 0; border-radius: 999px;
+  background: var(--dusk); box-shadow: inset 0 0 0 1px var(--rule);
+  font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap;
+}
+.tbtn:hover { background: var(--dusk-hi); }
+.tbtn.icon { width: 40px; padding: 0; justify-content: center; }
+.primary {
+  min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--sun); color: var(--sun-ink); font-weight: 700; font-size: 15px;
+  box-shadow: 0 3px 0 var(--sun-deep);
+}
+.primary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--sun-deep); }
+
+/* ---------- title screen ---------- */
+#home { min-height: 100%; }
+.home {
+  max-width: 1180px; margin-inline: auto;
+  padding-inline: 16px; padding-block: 12px 28px;
+  display: grid; gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.home-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wordmark {
+  margin: 0; font-family: var(--display); font-weight: 400;
+  font-size: 22px; line-height: 1.1; letter-spacing: .01em; color: var(--sun);
+}
+.hero { margin: 0; }
+.hero img {
+  display: block; width: 100%; max-width: 100%; height: auto;
+  aspect-ratio: 8 / 3; object-fit: cover; object-position: 50% 50%;
+  border-radius: 16px; background: #2a14b8;
+  box-shadow: 0 0 0 1px var(--rule), 0 30px 80px -40px #000;
+}
+.pick { display: grid; gap: 12px; }
+.pick-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.pick-head h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.status { margin: 0; color: var(--haze); font-size: 14px; min-width: 0; }
+.status.err { color: var(--sun); }
+.loadbar { height: 6px; border-radius: 3px; background: var(--dusk); box-shadow: inset 0 0 0 1px var(--rule); overflow: hidden; }
+.loadbar i { display: block; height: 100%; width: 0%; background: var(--sun); transition: width .2s; }
+.eps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.ep {
+  display: grid; grid-template-rows: auto 1fr; padding: 0; border: 0; text-align: left;
+  background: var(--dusk); border-radius: 14px; overflow: hidden; cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--rule);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.ep .shot { display: block; overflow: hidden; }
+.ep img { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; transition: transform .3s ease, filter .3s; }
+.ep-text { display: grid; align-content: start; gap: 3px; padding: 10px 14px 14px; min-width: 0; }
+.ep b { font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.1; }
+.ep .meta { color: var(--haze); font-size: 13px; }
+.chip {
+  justify-self: start; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 999px; line-height: 1.5;
+}
+.chip.full { background: var(--grass); color: #0b2405; }
+.chip.demo { box-shadow: inset 0 0 0 1px var(--rule); color: var(--haze); }
+.ep:not(:disabled):hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--sun); }
+.ep:not(:disabled):hover img { transform: scale(1.04); }
+.ep:disabled { cursor: progress; }
+.ep:disabled img { filter: saturate(.35) brightness(.6); }
+.ep:focus-visible { outline-offset: 3px; }
+.home-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; color: var(--haze); font-size: 13px; }
+.home-foot p { margin: 0; max-width: 60ch; }
+kbd {
+  display: inline-block; min-width: 22px; padding: 0 5px; text-align: center;
+  font: 600 12px/20px var(--ui); color: var(--ink);
+  background: var(--dusk); border-radius: 5px; box-shadow: inset 0 0 0 1px var(--rule), 0 2px 0 var(--rule);
+}
+.keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; }
+.keys span { white-space: nowrap; }
+.touch-only { display: none; }
+body.touch .touch-only { display: revert; }
+body.touch .keys-only { display: none; }
+
+@media (max-width: 860px) {
+  .eps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .ep b { font-size: 19px; }
+}
+@media (max-width: 520px) {
+  .home { gap: 14px; }
+  .hero img { border-radius: 12px; aspect-ratio: 2 / 1; object-position: 100% 50%; }
+  .ep-text { padding: 8px 10px 12px; }
+  .ep b { font-size: 17px; }
+  .ep .meta { font-size: 12px; }
+}
+/* short landscape screens: picture beside the list */
+@media (orientation: landscape) and (max-height: 540px) {
+  .home { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 20px; align-items: start; }
+  .home-top, .home-foot { grid-column: 1 / -1; }
+  .hero img { aspect-ratio: 4 / 3; }
+  .eps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ep img { aspect-ratio: 2 / 1; }
+  .ep-text { padding: 6px 10px 10px; }
+  .ep b { font-size: 16px; }
+}
+
+/* ---------- play screen ---------- */
+#play {
+  position: fixed; inset: 0; z-index: 1;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--night);
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.topbar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; min-width: 0; }
+.ep-name {
+  flex: 1; min-width: 0; text-align: center;
+  font-family: var(--display); font-size: 18px; line-height: 1.2; color: var(--sun);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bar-side { display: flex; gap: 8px; flex: none; }
+@media (max-width: 420px) {
+  .topbar { gap: 6px; }
+  .topbar [data-leave] { width: 40px; padding: 0; justify-content: center; }
+  .topbar [data-leave] .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+.stage-wrap { container-type: size; display: grid; place-items: center; min-height: 0; padding: 4px 16px 12px; }
+.stage {
+  position: relative; width: min(100cqw, 100cqh * 4 / 3); max-width: 100%; aspect-ratio: 4 / 3;
+  background: var(--black); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--rule), 0 24px 70px -30px #000;
+}
+#screen { display: block; width: 100%; height: 100%; image-rendering: auto; }
+body.sharp #screen { image-rendering: pixelated; image-rendering: crisp-edges; }
+.starting {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--haze); font-size: 14px; background: var(--black);
+}
+.legend { padding: 0 16px 14px; color: var(--haze); font-size: 13px; }
+
+/* name entry on touch screens: the field that brings up the phone keyboard */
+#typer {
+  position: absolute; left: 0; top: 0; width: 2px; height: 2px; opacity: .01;
+  border: 0; padding: 0; font-size: 16px; background: transparent; color: transparent; caret-color: transparent;
+}
+.type-btn {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  min-height: 42px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--sun); color: var(--sun-ink); font-weight: 700; font-size: 15px;
+  box-shadow: 0 3px 0 var(--sun-deep), 0 8px 24px rgba(0,0,0,.45);
+  animation: nudge 1.6s ease-in-out infinite;
+}
+@keyframes nudge { 50% { transform: translateX(-50%) translateY(-3px); } }
+.type-btn.in-row { position: static; transform: none; animation: none; min-height: 38px; padding: 0 16px; font-size: 14px; }
+/* portrait phones show the button under the picture, everything else over it */
+.type-btn.in-row { display: none; }
+@media (orientation: portrait) {
+  body.touch .type-btn.on-stage { display: none; }
+  body.touch .type-btn.in-row { display: inline-flex; }
+}
+
+/* touch pads */
+#pads { display: none; }
+.corner { display: none; }
+body.touch .legend { display: none; }
+body.touch #pads { display: grid; }
+.pad-mid { display: flex; flex-direction: column; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.pill {
+  min-width: 68px; height: 38px; padding: 0 14px; border: 0; border-radius: 999px;
+  background: var(--dusk); box-shadow: inset 0 0 0 1px var(--rule);
+  font-weight: 700; font-size: 14px; letter-spacing: .02em; touch-action: none;
+}
+#dpad { position: relative; width: var(--dp, 180px); height: var(--dp, 180px); flex: none; touch-action: none; }
+#dpad::before, #dpad::after {
+  content: ""; position: absolute; background: var(--dusk); box-shadow: inset 0 0 0 1px var(--rule); border-radius: 14px;
+}
+#dpad::before { left: 33%; right: 33%; top: 2%; bottom: 2%; }
+#dpad::after { top: 33%; bottom: 33%; left: 2%; right: 2%; }
+#dpad .hub { position: absolute; left: 33.5%; top: 33.5%; right: 33.5%; bottom: 33.5%; z-index: 1; background: var(--dusk); }
+#dpad .hub::after { content: ""; position: absolute; inset: 30%; border-radius: 50%; background: var(--rule); }
+#dpad .ar { position: absolute; z-index: 1; width: 0; height: 0; border: 10px solid transparent; opacity: .7; }
+#dpad .u { left: 50%; top: 11%; margin-left: -10px; border-bottom: 14px solid var(--ink); border-top: 0; }
+#dpad .d { left: 50%; bottom: 11%; margin-left: -10px; border-top: 14px solid var(--ink); border-bottom: 0; }
+#dpad .l { top: 50%; left: 11%; margin-top: -10px; border-right: 14px solid var(--ink); border-left: 0; }
+#dpad .r { top: 50%; right: 11%; margin-top: -10px; border-left: 14px solid var(--ink); border-right: 0; }
+#dpad .ar.on { opacity: 1; }
+#dpad .u.on { border-bottom-color: var(--sun); }
+#dpad .d.on { border-top-color: var(--sun); }
+#dpad .l.on { border-right-color: var(--sun); }
+#dpad .r.on { border-left-color: var(--sun); }
+.cluster { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; gap: 8px 10px; align-items: center; justify-items: center; }
+.rb {
+  display: grid; place-content: center; text-align: center; border: 0; border-radius: 50%;
+  width: var(--rs, 60px); height: var(--rs, 60px); padding: 0; touch-action: none;
+  background: var(--dusk); box-shadow: inset 0 0 0 1px var(--rule), 0 3px 0 var(--rule);
+  font-weight: 800; font-size: 19px; line-height: 1;
+}
+.rb small { display: block; margin-top: 3px; font-size: 10px; font-weight: 600; color: var(--haze); letter-spacing: .03em; }
+.rb.dig { --rs: var(--dg, 84px); grid-column: 2; grid-row: 2; background: var(--sun); color: var(--sun-ink); box-shadow: 0 4px 0 var(--sun-deep); font-size: 20px; }
+.rb.dig small { color: var(--sun-ink); opacity: .7; }
+.rb.x { grid-column: 2; grid-row: 1; }
+.rb.z { grid-column: 1; grid-row: 2; }
+.pill.on, .rb.on { transform: translateY(2px); filter: brightness(1.3); }
+.rb.dig.on { box-shadow: 0 2px 0 var(--sun-deep); }
+
+@media (orientation: portrait) {
+  body.touch #play { grid-template-rows: auto auto minmax(0, 1fr); }
+  body.touch .stage-wrap { container-type: inline-size; padding: 0 16px; }
+  body.touch .stage { width: min(100cqw, calc((100dvh - 64px - 230px) * 4 / 3)); }
+  body.touch #pads {
+    container-type: size; min-height: 0;
+    grid-template-columns: auto auto; grid-template-rows: auto auto;
+    justify-content: space-between; align-content: center; align-items: center; gap: clamp(12px, 6cqh, 40px) 12px;
+    padding: 10px 16px 14px;
+  }
+  body.touch .pad-mid { grid-column: 1 / -1; grid-row: 1; flex-direction: row; gap: 12px; }
+  body.touch .pad-left { grid-column: 1; grid-row: 2; }
+  body.touch .pad-right { grid-column: 2; grid-row: 2; }
+  body.touch #dpad { --dp: clamp(120px, min(46cqw, 70cqh), 230px); }
+  body.touch .cluster { --rs: clamp(48px, min(15cqw, 22cqh), 72px); --dg: clamp(64px, min(21cqw, 30cqh), 100px); }
+}
+@media (orientation: landscape) {
+  body.touch #play { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  body.touch .topbar { display: none; }
+  body.touch .stage-wrap { grid-column: 2; grid-row: 1; container-type: normal; padding: 6px 0; }
+  body.touch .stage {
+    width: min(calc((100dvh - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * 4 / 3),
+               calc(100vw - 300px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    border-radius: 8px;
+  }
+  body.touch #pads { display: contents; }
+  body.touch .pad-left { grid-column: 1; grid-row: 1; align-self: end; justify-self: center; padding-bottom: 14px; }
+  body.touch .pad-right { grid-column: 3; grid-row: 1; align-self: end; justify-self: center; padding-bottom: 14px; }
+  body.touch .pad-mid { grid-column: 3; grid-row: 1; align-self: start; justify-self: center; flex-direction: row; padding-top: 12px; }
+  body.touch .corner { display: flex; gap: 8px; grid-column: 1; grid-row: 1; align-self: start; justify-self: center; padding-top: 12px; }
+  body.touch #dpad { --dp: clamp(108px, min(42dvh, 21vw), 164px); }
+  body.touch .cluster { --rs: clamp(44px, min(14dvh, 7vw), 58px); --dg: clamp(58px, min(20dvh, 10vw), 78px); }
+  body.touch .pill { min-width: 60px; height: 34px; }
+}
+
+/* ---------- dialogs ---------- */
+dialog {
+  border: 0; padding: 0; color: var(--ink); background: var(--dusk);
+  border-radius: 18px; box-shadow: 0 0 0 1px var(--rule), 0 40px 100px -20px #000;
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+}
+dialog::backdrop { background: rgba(6, 4, 18, .72); }
+.sheet { display: grid; gap: 18px; padding: 18px 20px 20px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet-head h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.1; color: var(--sun); }
+.group { display: grid; gap: 12px; }
+.group h3 { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--haze); }
+.row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 3.2em; align-items: center; gap: 12px; }
+.row label, .row .lbl { font-weight: 600; }
+.row output { text-align: right; font-variant-numeric: tabular-nums; color: var(--haze); font-size: 14px; }
+.row.two { grid-template-columns: minmax(0, 1fr) auto; }
+input[type=range] { width: 100%; accent-color: var(--sun); height: 28px; margin: 0; cursor: pointer; }
+.switch { appearance: none; -webkit-appearance: none; width: 46px; height: 28px; margin: 0; border-radius: 999px; background: var(--night); box-shadow: inset 0 0 0 1px var(--rule); position: relative; cursor: pointer; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--haze); transition: transform .15s, background .15s; }
+.switch:checked { background: var(--sun); }
+.switch:checked::after { transform: translateX(18px); background: var(--sun-ink); }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--night); box-shadow: inset 0 0 0 1px var(--rule); }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: 5px 13px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--haze); }
+.seg input:checked + span { background: var(--dusk-hi); color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule); }
+.seg input:focus-visible + span { outline: 3px solid var(--sun); outline-offset: 1px; }
+.hint { margin: -4px 0 0; color: var(--haze); font-size: 13px; }
+.sheet-foot { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.sheet p { margin: 0; }
+@media (max-width: 520px) {
+  dialog#settings { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 18px 18px 0 0; max-height: 88dvh; }
+  dialog#settings .sheet { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loadbar i, .ep, .ep img { transition: none; }
+  .type-btn { animation: none; }
+}
+</style>
+
+<!-- ======================= title screen ======================= -->
+<div id="home">
+  <div class="home">
+    <header class="home-top">
+      <h1 class="wordmark">Paksukese seiklused</h1>
+      <button class="tbtn" type="button" data-open-settings>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        Settings
+      </button>
+    </header>
+
+    <figure class="hero">
+      <picture>
+        <source media="(orientation: landscape) and (max-height: 540px)" srcset="assets/art/title43.webp" width="640" height="480">
+        <img src="assets/art/title.webp" width="1280" height="480" alt="The title screen: the Paksukese seiklused logo in a violet evening sky, with Paksuke sitting on the grass">
+      </picture>
+    </figure>
+
+    <section class="pick" aria-labelledby="pickTitle">
+      <div class="pick-head">
+        <h2 id="pickTitle">Choose an episode</h2>
+        <p id="status" class="status" role="status">Loading the game files…</p>
+      </div>
+      <div id="loadbar" class="loadbar" aria-hidden="true"><i></i></div>
+      <div id="eps" class="eps">
+        <button class="ep" type="button" data-ep="1" disabled>
+          <span class="shot"><img src="assets/art/ep1.webp" width="400" height="300" alt=""></span>
+          <span class="ep-text"><span class="chip full">Full game</span><b>Kadunud mets</b><span class="meta">50 levels · Estonian</span></span>
+        </button>
+        <button class="ep" type="button" data-ep="2" disabled>
+          <span class="shot"><img src="assets/art/ep2.webp" width="400" height="300" alt=""></span>
+          <span class="ep-text"><span class="chip demo">Demo</span><b>Underground</b><span class="meta">5 levels · English</span></span>
+        </button>
+        <button class="ep" type="button" data-ep="3" disabled>
+          <span class="shot"><img src="assets/art/ep3.webp" width="400" height="300" alt=""></span>
+          <span class="ep-text"><span class="chip demo">Demo</span><b>Round the world</b><span class="meta">5 levels · English</span></span>
+        </button>
+        <button class="ep" type="button" data-ep="4" disabled>
+          <span class="shot"><img src="assets/art/ep4.webp" width="400" height="300" alt=""></span>
+          <span class="ep-text"><span class="chip demo">Demo</span><b>Christmas</b><span class="meta">5 levels · English</span></span>
+        </button>
+      </div>
+    </section>
+
+    <footer class="home-foot">
+      <p>Another Day's 2003 game, rebuilt from its original code to run in the browser. Saved games stay in this browser on this device.</p>
+      <p class="keys-only">Arrow keys move, <kbd>Space</kbd> digs, <kbd>Esc</kbd> opens the game menu.</p>
+      <p class="touch-only">Turn your phone sideways for a bigger picture.</p>
+    </footer>
+  </div>
+</div>
+
+<!-- ======================= play screen ======================= -->
+<div id="play" hidden>
+  <header class="topbar">
+    <div class="bar-side">
+      <button class="tbtn" type="button" data-leave>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        <span class="lbl">Episodes</span>
+      </button>
+    </div>
+    <span id="epName" class="ep-name">Kadunud mets</span>
+    <div class="bar-side">
+      <button class="tbtn icon" type="button" data-fullscreen aria-label="Full screen">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <button class="tbtn icon" type="button" data-open-settings aria-label="Settings">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="stage-wrap">
+    <div id="stage" class="stage">
+      <canvas id="screen" width="640" height="480" aria-label="Game screen"></canvas>
+      <input id="typer" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Name" tabindex="-1">
+      <button class="type-btn on-stage" type="button" data-type hidden>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 15h10"/></svg>
+        Type a name
+      </button>
+      <div id="starting" class="starting">Starting…</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="keys">
+      <span><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> move</span>
+      <span><kbd>Space</kbd> dig</span>
+      <span><kbd>X</kbd> next item</span>
+      <span><kbd>Z</kbd> use item</span>
+      <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> gun, cage, shovel</span>
+      <span><kbd>Enter</kbd> select</span>
+      <span><kbd>Esc</kbd> menu</span>
+      <span><kbd>F1</kbd> help</span>
+    </div>
+  </div>
+
+  <div id="pads">
+    <div class="corner">
+      <button class="tbtn icon" type="button" data-leave aria-label="Back to episodes">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="tbtn icon" type="button" data-open-settings aria-label="Settings">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <button class="tbtn icon" type="button" data-fullscreen aria-label="Full screen">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+    </div>
+    <div class="pad-left">
+      <div id="dpad" role="group" aria-label="Direction pad"><span class="hub"></span><span class="ar u"></span><span class="ar d"></span><span class="ar l"></span><span class="ar r"></span></div>
+    </div>
+    <div class="pad-mid">
+      <button class="type-btn in-row" type="button" data-type hidden>
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 15h10"/></svg>
+        Type a name
+      </button>
+      <button class="pill" type="button" data-vk="27">Menu</button>
+      <button class="pill" type="button" data-vk="13">OK</button>
+    </div>
+    <div class="pad-right">
+      <div class="cluster">
+        <button class="rb x" type="button" data-vk="88">X<small>item</small></button>
+        <button class="rb z" type="button" data-vk="90">Z<small>use</small></button>
+        <button class="rb dig" type="button" data-vk="32">Dig</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= settings ======================= -->
+<dialog id="settings" aria-labelledby="setTitle">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head">
+      <h2 id="setTitle">Settings</h2>
+      <button class="tbtn icon" value="close" aria-label="Close settings">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="group">
+      <h3>Sound</h3>
+      <div class="row"><label for="volMusic">Music</label><input type="range" id="volMusic" min="0" max="100" step="5"><output id="volMusicOut" for="volMusic">100%</output></div>
+      <div class="row"><label for="volSfx">Effects</label><input type="range" id="volSfx" min="0" max="100" step="5"><output id="volSfxOut" for="volSfx">100%</output></div>
+      <p class="hint">The game is paused while this panel is open. You'll hear a sample effect when you let go of the slider.</p>
+    </div>
+    <div class="group">
+      <h3>Screen</h3>
+      <div class="row two"><label for="sharp">Sharp pixels</label><input type="checkbox" class="switch" id="sharp" role="switch"></div>
+      <div class="row two">
+        <span class="lbl" id="touchLbl">Touch controls</span>
+        <div class="seg" role="radiogroup" aria-labelledby="touchLbl">
+          <label><input type="radio" name="touch" id="touchAuto" value="auto"><span>Auto</span></label>
+          <label><input type="radio" name="touch" id="touchOn" value="on"><span>On</span></label>
+          <label><input type="radio" name="touch" id="touchOff" value="off"><span>Off</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-foot"><button class="primary" value="done">Done</button></div>
+  </form>
+</dialog>
+
+<dialog id="leaveDlg" aria-labelledby="leaveTitle">
+  <form method="dialog" class="sheet">
+    <div class="sheet-head"><h2 id="leaveTitle">Leave this episode?</h2></div>
+    <p>Anything since your last save in the game's own menu is lost.</p>
+    <div class="sheet-foot">
+      <button class="tbtn" value="stay">Keep playing</button>
+      <button class="primary" value="leave">Leave episode</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="vendor/xm.js"></script>
+<script src="vendor/xmeffects.js"></script>
+<script src="fm_web.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
+  var body = document.body;
+  FM.attachCanvas($('screen'));
+
+  /* ---------------- settings (kept in this browser) ---------------- */
+  var DEF = { music: 100, sfx: 100, sharp: false, touch: 'auto' };
+  var S = {};
+  (function () {
+    var o = {};
+    try { o = JSON.parse(localStorage.getItem('paksuke-settings') || '{}') || {}; } catch (e) { o = {}; }
+    Object.keys(DEF).forEach(function (k) { S[k] = o[k] !== undefined ? o[k] : DEF[k]; });
+  })();
+  function saveSettings() { try { localStorage.setItem('paksuke-settings', JSON.stringify(S)); } catch (e) { } }
+  var coarse = window.matchMedia ? window.matchMedia('(pointer: coarse)') : { matches: false };
+  var touchSeen = false;   // a finger touched the page: Auto shows the touch controls from then on
+  function applySettings() {
+    FM.setVolumes(S.music / 100, S.sfx / 100);
+    body.classList.toggle('sharp', !!S.sharp);
+    body.classList.toggle('touch', S.touch === 'on' || (S.touch === 'auto' && (coarse.matches || touchSeen)));
+    updateTypeBtn();
+  }
+  if (coarse.addEventListener) coarse.addEventListener('change', applySettings);
+  window.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch' && !touchSeen) { touchSeen = true; applySettings(); }
+  }, true);
+
+  var setDlg = $('settings');
+  function showDialog(d) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function syncSettingsForm() {
+    $('volMusic').value = S.music; $('volMusicOut').textContent = S.music + '%';
+    $('volSfx').value = S.sfx; $('volSfxOut').textContent = S.sfx + '%';
+    $('sharp').checked = !!S.sharp;
+    ($('touch' + S.touch.charAt(0).toUpperCase() + S.touch.slice(1)) || $('touchAuto')).checked = true;
+  }
+  all('[data-open-settings]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      syncSettingsForm();
+      if (started) FM.setPaused('settings', true);
+      releaseHeld();
+      showDialog(setDlg);
+    });
+  });
+  setDlg.addEventListener('close', function () { FM.setPaused('settings', false); });
+  $('volMusic').addEventListener('input', function () {
+    S.music = +this.value; $('volMusicOut').textContent = S.music + '%'; FM.unlockAudio(); applySettings(); saveSettings();
+  });
+  $('volSfx').addEventListener('input', function () {
+    S.sfx = +this.value; $('volSfxOut').textContent = S.sfx + '%'; applySettings(); saveSettings();
+  });
+  $('volSfx').addEventListener('change', function () { FM.previewSfx(); });
+  $('sharp').addEventListener('change', function () { S.sharp = this.checked; applySettings(); saveSettings(); });
+  all('input[name=touch]').forEach(function (r) {
+    r.addEventListener('change', function () { if (this.checked) { S.touch = this.value; applySettings(); saveSettings(); } });
+  });
+
+  /* ---------------- screens ---------------- */
+  var started = false, runs = 0;
+  var EP_NAMES = { 1: 'Kadunud mets', 2: 'Underground', 3: 'Round the world', 4: 'Christmas' };
+  function showHome() {
+    $('play').hidden = true; $('home').hidden = false;
+    body.classList.remove('playing');
+    releaseWake();
+  }
+  function showPlay(ep) {
+    $('epName').textContent = EP_NAMES[ep];
+    $('home').hidden = true; $('play').hidden = false;
+    body.classList.add('playing');
+    window.scrollTo(0, 0);
+    takeWake();
+  }
+
+  // keep the phone screen on while playing (optional; refused in some viewers)
+  var wake = null;
+  function takeWake() {
+    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }, function () { }); } catch (e) { }
+  }
+  function releaseWake() { try { if (wake) wake.release(); } catch (e) { } wake = null; }
+
+  // full screen where the browser allows it
+  var fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  all('[data-fullscreen]').forEach(function (b) {
+    if (!fsOK) { b.hidden = true; return; }
+    b.addEventListener('click', function () {
+      var el = document.documentElement;
+      try {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        } else {
+          var r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+          if (r && r.catch) r.catch(function () { });
+        }
+      } catch (e) { }
+    });
+  });
+
+  // leaving an episode
+  var leaveDlg = $('leaveDlg');
+  all('[data-leave]').forEach(function (b) {
+    b.addEventListener('click', function () { releaseHeld(); FM.setPaused('leave', true); showDialog(leaveDlg); });
+  });
+  leaveDlg.addEventListener('close', function () {
+    FM.setPaused('leave', false);
+    if (leaveDlg.returnValue === 'leave') {
+      runs++; started = false;
+      FM.abandon();
+      showHome();
+      setStatus('');
+      focusEpisode();
+    }
+  });
+  FM.onQuit = function () {
+    runs++; started = false;
+    showHome();
+    setStatus('Thanks for playing. Pick an episode to play again.');
+    focusEpisode();
+  };
+
+  document.addEventListener('visibilitychange', function () {
+    FM.setPaused('hidden', document.hidden);
+    if (!document.hidden && started) takeWake();
+  });
+
+  /* ---------------- keyboard ---------------- */
+  var GAME_KEYS = { 8: 1, 9: 1, 13: 1, 16: 1, 27: 1, 32: 1, 37: 1, 38: 1, 39: 1, 40: 1, 112: 1, 115: 1, 116: 1, 117: 1, 118: 1, 119: 1 };
+  var TYPER_PASS = { 13: 1, 27: 1, 37: 1, 38: 1, 39: 1, 40: 1 };   // keys the name field hands to the game
+  var keysDown = {};
+  function dialogOpen() { return setDlg.open || leaveDlg.open; }
+  function gameKey(e) { return GAME_KEYS[e.keyCode] || (e.keyCode >= 48 && e.keyCode <= 90) || (e.keyCode >= 186 && e.keyCode <= 222); }
+  window.addEventListener('keydown', function (e) {
+    if (!started || dialogOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target === typer && !TYPER_PASS[e.keyCode]) return;   // typed text arrives through the field's input events
+    FM.unlockAudio();
+    if (gameKey(e)) e.preventDefault();
+    keysDown[e.keyCode] = 1;
+    FM.key(e.keyCode, 1);
+  });
+  window.addEventListener('keyup', function (e) {
+    if (!keysDown[e.keyCode]) return;          // only release keys the game saw go down
+    delete keysDown[e.keyCode];
+    if (gameKey(e)) e.preventDefault();
+    FM.key(e.keyCode, 0);
+  });
+  window.addEventListener('blur', function () { releaseHeld(); });
+
+  /* ---------------- touch pads ---------------- */
+  var dpad = $('dpad');
+  var arrows = { 38: dpad.querySelector('.u'), 40: dpad.querySelector('.d'), 37: dpad.querySelector('.l'), 39: dpad.querySelector('.r') };
+  var held = 0, padPointer = null;
+  function setDir(vk) {
+    if (vk === held) return;
+    if (held) { FM.key(held, 0); arrows[held].classList.remove('on'); }
+    held = vk;
+    if (held) { FM.key(held, 1); arrows[held].classList.add('on'); }
+  }
+  function dirFrom(e) {
+    var r = dpad.getBoundingClientRect();
+    var dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    var dead = r.width * 0.09;
+    if (dx * dx + dy * dy < dead * dead) return 0;
+    if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? 37 : 39;
+    return dy < 0 ? 38 : 40;
+  }
+  dpad.addEventListener('pointerdown', function (e) {
+    e.preventDefault(); FM.unlockAudio();
+    padPointer = e.pointerId; try { dpad.setPointerCapture(e.pointerId); } catch (x) { }
+    setDir(dirFrom(e));
+  });
+  dpad.addEventListener('pointermove', function (e) { if (e.pointerId === padPointer) setDir(dirFrom(e)); });
+  function padUp(e) { if (e.pointerId === padPointer) { padPointer = null; setDir(0); } }
+  dpad.addEventListener('pointerup', padUp);
+  dpad.addEventListener('pointercancel', padUp);
+
+  var heldButtons = [];
+  all('#pads [data-vk]').forEach(function (b) {
+    var vk = +b.getAttribute('data-vk'), id = null;
+    function release() { if (id === null) return; id = null; b.classList.remove('on'); FM.key(vk, 0); }
+    heldButtons.push(release);
+    b.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); FM.unlockAudio();
+      id = e.pointerId; try { b.setPointerCapture(id); } catch (x) { }
+      b.classList.add('on'); FM.key(vk, 1);
+    });
+    b.addEventListener('pointerup', function (e) { if (e.pointerId === id) release(); });
+    b.addEventListener('pointercancel', function (e) { if (e.pointerId === id) release(); });
+    b.addEventListener('click', function (e) { e.preventDefault(); });
+  });
+  function releaseHeld() {
+    setDir(0); padPointer = null;
+    heldButtons.forEach(function (r) { r(); });
+    Object.keys(keysDown).forEach(function (k) { FM.key(+k, 0); });
+    keysDown = {};
+  }
+  $('play').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  /* ---------------- name entry with the phone keyboard ---------------- */
+  // The game reads Windows key codes with Shift through a US-layout table, so typed characters
+  // are turned back into those key presses. Letters with accents lose them (õ -> o): the game's
+  // name font only has plain ASCII.
+  var typer = $('typer'), typeBtns = all('[data-type]');
+  var SENT = '    ';   // padding so Backspace still fires when the name looks empty
+  var prev = SENT, composing = false;
+  function resetTyper() {
+    typer.value = SENT; prev = SENT;
+    try { typer.setSelectionRange(SENT.length, SENT.length); } catch (e) { }
+  }
+  function updateTypeBtn() {
+    var show = started && FM.textActive && body.classList.contains('touch') && document.activeElement !== typer;
+    typeBtns.forEach(function (b) { b.hidden = !show; });
+  }
+  FM.onTextMode = function (on) {
+    if (!on && document.activeElement === typer) typer.blur();
+    updateTypeBtn();
+  };
+  function openKeyboard() { resetTyper(); typer.focus(); updateTypeBtn(); }
+  typeBtns.forEach(function (b) { b.addEventListener('click', openKeyboard); });
+  $('screen').addEventListener('click', function () { if (FM.textActive && body.classList.contains('touch')) openKeyboard(); });
+  typer.addEventListener('focus', updateTypeBtn);
+  typer.addEventListener('blur', updateTypeBtn);
+  typer.addEventListener('compositionstart', function () { composing = true; });
+  typer.addEventListener('compositionend', function () { composing = false; syncTyper(); });
+  typer.addEventListener('input', syncTyper);
+  function press(vk, shift) {
+    if (shift) FM.key(16, 1);
+    FM.key(vk, 1); FM.key(vk, 0);
+    if (shift) FM.key(16, 0);
+  }
+  var PUNCT = {
+    ')': [48, 1], '!': [49, 1], '@': [50, 1], '#': [51, 1], '$': [52, 1], '%': [53, 1], '^': [54, 1], '&': [55, 1], '*': [56, 1], '(': [57, 1],
+    ';': [186, 0], ':': [186, 1], '=': [187, 0], '+': [187, 1], ',': [188, 0], '<': [188, 1], '-': [189, 0], '_': [189, 1],
+    '.': [190, 0], '>': [190, 1], '/': [191, 0], '?': [191, 1], '`': [192, 0], '~': [192, 1], '[': [219, 0], '{': [219, 1],
+    '\\': [220, 0], '|': [220, 1], ']': [221, 0], '}': [221, 1], "'": [222, 0], '"': [222, 1],
+    '‘': [222, 0], '’': [222, 0], '“': [222, 1], '”': [222, 1], '–': [189, 0], '—': [189, 0]
+  };
+  function typeChar(c) {
+    if (c === '\n' || c === '\r') { press(13, false); return; }
+    if (c === ' ') return;
+    if (c.normalize) c = c.normalize('NFD').replace(/[̀-ͯ]/g, '').charAt(0) || c;
+    if (c === ' ' || c === ' ') return press(32, false);
+    if (c >= 'a' && c <= 'z') return press(c.toUpperCase().charCodeAt(0), false);
+    if (c >= 'A' && c <= 'Z') return press(c.charCodeAt(0), true);
+    if (c >= '0' && c <= '9') return press(c.charCodeAt(0), false);
+    var p = PUNCT[c];
+    if (p) press(p[0], !!p[1]);
+  }
+  function syncTyper() {
+    var cur = typer.value, p = 0, n = Math.min(prev.length, cur.length);
+    while (p < n && prev.charCodeAt(p) === cur.charCodeAt(p)) p++;
+    for (var i = prev.length; i > p; i--) press(8, false);
+    var add = cur.slice(p);
+    for (var j = 0; j < add.length; j++) typeChar(add.charAt(j));
+    prev = cur;
+    if (!composing && (cur.length < 2 || cur.length > 40)) resetTyper();
+  }
+
+  /* ---------------- loading and starting ---------------- */
+  var status = $('status'), bar = $('loadbar').firstElementChild;
+  function setStatus(t, err) { status.textContent = t; status.classList.toggle('err', !!err); }
+  var wasmOK = false, forceJS = location.hash === '#js';
+  try {
+    wasmOK = typeof WebAssembly === 'object' &&
+      new WebAssembly.Module(Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0)) instanceof WebAssembly.Module && !forceJS;
+  } catch (e) { wasmOK = false; }
+  // episodes 2 and 3 share one code build
+  var ENGINE = { 1: ['fm_e1', 'FatmanE1', 'data.bin'], 2: ['fm_e2', 'FatmanE2', 'data_e2.bin'],
+                 3: ['fm_e2', 'FatmanE2', 'data_e3.bin'], 4: ['fm_e4', 'FatmanE4', 'data_e4.bin'] };
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      var el = document.createElement('script');
+      el.src = src; el.onload = res; el.onerror = function () { rej(new Error('could not load ' + src)); };
+      document.body.appendChild(el);
+    });
+  }
+  var lastEp = '1';
+  try { lastEp = localStorage.getItem('paksuke-episode') || '1'; } catch (e) { }
+  function focusEpisode() {
+    if (body.classList.contains('touch')) return;
+    var b = document.querySelector('.ep[data-ep="' + lastEp + '"]') || document.querySelector('.ep');
+    try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); }
+  }
+
+  applySettings();
+  FM.load('assets/', function (f) { bar.style.width = Math.round(f * 100) + '%'; setStatus('Loading the game files… ' + Math.round(f * 100) + '%'); })
+    .then(function () {
+      $('loadbar').hidden = true;
+      all('.ep').forEach(function (b) { b.disabled = false; });
+      setStatus('');
+      focusEpisode();
+    })
+    .catch(function (err) {
+      setStatus('The game files did not load (' + err.message + '). Reload the page to try again.', true);
+    });
+
+  $('eps').addEventListener('click', function (e) {
+    var b = e.target.closest('.ep');
+    if (!b || b.disabled || started) return;
+    var ep = b.getAttribute('data-ep'), eng = ENGINE[ep], run = ++runs;
+    lastEp = ep;
+    try { localStorage.setItem('paksuke-episode', ep); } catch (x) { }
+    FM.unlockAudio();
+    started = true;
+    $('starting').hidden = false;
+    showPlay(ep);
+    (window[eng[1]] ? Promise.resolve() : loadScript(eng[0] + (wasmOK ? '' : '_js') + '.js'))
+      .then(function () {
+        return window[eng[1]]({
+          locateFile: function (p) { return p; },
+          print: function (t) { console.log(t); },
+          printErr: function (t) { console.warn(t); }
+        });
+      })
+      .then(function (m) {
+        if (run !== runs) return;            // left before the engine finished loading
+        FM.setModule(m);
+        $('starting').hidden = true;
+        var data = FM.dataBin(eng[2]);
+        var p = m._malloc(data.length);
+        m.HEAPU8.set(data, p);
+        var seed = (Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0;
+        try { m._fm_main(p, data.length, seed); } catch (x) { if (x !== 'unwind') console.error(x); }
+      })
+      .catch(function (err) {
+        if (run !== runs) return;
+        started = false;
+        showHome();
+        setStatus('The game engine did not start (' + err.message + '). Reload the page to try again.', true);
+      });
+  });
+})();
+</script>
+
+</body></html>
