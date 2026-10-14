@@ -23,6 +23,3 @@ An experiment with **Claude Opus 5.5**. The goal was to take *Paksukese seikluse
 
 Squeezing the game into the DS's 4 MB of RAM took the most care. The PC version's memory was packed into small regions. The 8 MB of save slots are streamed to the SD card instead of being held in memory. Graphics are streamed into video memory in small tiles as they're needed.
 
-## Notes
-
-The game, its art and its music belong to Another Day / Shamrock Games. This port was made from my own CD for personal use.
